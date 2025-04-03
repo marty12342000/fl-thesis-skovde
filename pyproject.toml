@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fl-thesis-skovde"
+version = "1.0.0"
+description = ""
+license = "Apache-2.0"
+dependencies = [
+    "flwr[simulation]>=1.17.0",
+    "flwr-datasets[vision]>=0.5.0",
+    "torch==2.5.1",
+    "torchvision==0.20.1",
+    "wandb",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+
+[tool.flwr.app]
+publisher = "Martin"
+
+[tool.flwr.app.components]
+serverapp = "fl_thesis_skovde.server_app:app"
+clientapp = "fl_thesis_skovde.client_app:app"
+
+[tool.flwr.app.config]
+num-server-rounds = 5
+fraction-fit = 0.5 # fraction of clients to train for each round
+local-epochs = 1
+# add more config options if needed
+
+[tool.flwr.federations]
+default = "local-simulation"
+
+[tool.flwr.federations.local-simulation]
+options.num-supernodes = 10
