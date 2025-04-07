@@ -30,3 +30,16 @@ You can run Flower on Docker too! Check out the [Flower with Docker](https://flo
 - Join the Flower community!
   - [Flower Slack](https://flower.ai/join-slack/)
   - [Flower Discuss](https://discuss.flower.ai/)
+
+## Early Stopping Implementation
+
+This project requires a modification to the Flower package to enable early stopping functionality. You need to add the following code to the `fit` method in `flwr.server.server`:
+
+```python
+# Early stopping
+if self.strategy.should_stop():
+    log(WARN, "EARLY STOPPING TRIGGERED")
+    break
+```
+
+This modification is necessary because Flower doesn't provide early stopping strategies by default. The code should be added inside the training loop of the `fit` method to check if the early stopping condition has been met.
