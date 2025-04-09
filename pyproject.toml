@@ -26,10 +26,14 @@ serverapp = "fl_thesis_skovde.server_app:app"
 clientapp = "fl_thesis_skovde.client_app:app"
 
 [tool.flwr.app.config]
-num-server-rounds = 20
+num-server-rounds = 50
 fraction-fit = 0.5 # fraction of clients to train for each round
 local-epochs = 1
-# add more config options if needed
+
+momentum_threshold = 0.001 
+gamma = 0.8
+alpha_partition = 0.1
+
 
 [tool.flwr.federations]
 default = "local-simulation"

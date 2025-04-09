@@ -29,19 +29,11 @@ class FlowerClient(NumPyClient):
             self.device,
         )
 
-        complexe_metrics = {
-            "train_loss": train_loss,
-            "random_metric": random.random(),
-            "test_loss_random": random.random(),        
-            "b_value": random.random(),
-            }
-        complexe_metrics_json = json.dumps(complexe_metrics)
-
 
         return (
             get_weights(self.net),
             len(self.trainloader.dataset),
-            {"train_loss": train_loss, "my_metric": complexe_metrics_json},
+            {"train_loss": train_loss},
         )
 
     def evaluate(self, parameters, config):
@@ -55,7 +47,8 @@ def client_fn(context: Context):
     net = Net()
     partition_id = context.node_config["partition-id"]
     num_partitions = context.node_config["num-partitions"]
-    trainloader, valloader = load_data(partition_id, num_partitions)
+    alpha_partition = context.run_config["alpha_partition"]
+    trainloader, valloader = load_data(partition_id, num_partitions, alpha_partition)
     local_epochs = context.run_config["local-epochs"]
 
     # Return Client instance
@@ -65,6 +58,4 @@ def client_fn(context: Context):
 # Flower ClientApp
 app = ClientApp(
     client_fn,
-    
-
 )

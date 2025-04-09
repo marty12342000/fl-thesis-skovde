@@ -1,7 +1,7 @@
 """fl-thesis-skovde: A Flower / PyTorch app."""
 
 from collections import OrderedDict
-
+from flwr.common import Context
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,6 +9,7 @@ from flwr_datasets import FederatedDataset
 from flwr_datasets.partitioner import DirichletPartitioner
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor
+import tomllib
 
 
 class Net(nn.Module):
@@ -48,14 +49,16 @@ def get_transforms():
 fds = None  # Cache FederatedDataset
 
 
-def load_data(partition_id: int, num_partitions: int):
+def load_data(partition_id: int, num_partitions: int, alpha_partition: float):
     """Load partition CIFAR10 data."""
     # Only initialize `FederatedDataset` once
     global fds
     if fds is None:
+
+
         # you can change the partitioner to other partitioners look at the flwr_datasets documentation
         partitioner = DirichletPartitioner(
-            num_partitions=num_partitions, partition_by="label", alpha=1.0
+            num_partitions=num_partitions, partition_by="label", alpha=alpha_partition, seed=42
         )
         fds = FederatedDataset(
             dataset="zalando-datasets/fashion_mnist", # this can be find on Hugging Face 

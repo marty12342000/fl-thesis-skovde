@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from fl_thesis_skovde.task import get_transforms
 import json
 
+
 def get_evaluate_fn(testloader, device):
     """Return a callback that evaluates the global model"""
 
@@ -39,19 +40,6 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     return {"accuracy": sum(accuracies) / total_examples}
 
 
-def handle_fit_metrics(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-
-    b_values = []
-    
-    for _, m in metrics:
-        my_metric = m["my_metric"]
-        my_metric_json = json.loads(my_metric)
-        b_values.append(my_metric_json["b_value"])
-
-
-    
-    return {"max_b": max(b_values)}
-
 
 def on_fit_config_fn(server_round: int) -> Metrics:
 
@@ -68,6 +56,9 @@ def server_fn(context: Context):
     num_rounds = context.run_config["num-server-rounds"]
     fraction_fit = context.run_config["fraction-fit"]
 
+    gamma = context.run_config["gamma"]
+    momentum_threshold = context.run_config["momentum_threshold"]
+
     # Initialize model parameters
     ndarrays = get_weights(Net()) # Net() is the model define in task.py 
     parameters = ndarrays_to_parameters(ndarrays)
@@ -79,12 +70,13 @@ def server_fn(context: Context):
 
     # Define strategy
     strategy = EarlyStoppingAMBS(
+        gamma=gamma,
+        momentum_threshold=momentum_threshold,
         fraction_fit=fraction_fit,
         fraction_evaluate=1.0,
         min_available_clients=2,
         initial_parameters=parameters,
         evaluate_metrics_aggregation_fn=weighted_average,
-        fit_metrics_aggregation_fn=handle_fit_metrics,
         on_fit_config_fn=on_fit_config_fn,
         evaluate_fn=get_evaluate_fn(testloader, device="cpu"),
     )
