@@ -9,9 +9,6 @@ grid_search_params = {
     "momentum_threshold": [0.0001],
     "gamma": [0.9],
 }
-
-
-
     # parse pyproject.toml
 
 for nb_clients in grid_search_params["nb_clients"]:
@@ -34,7 +31,7 @@ for nb_clients in grid_search_params["nb_clients"]:
                     toml.dump(data, f)
                 
                 # run flower simulatio
-                subprocess.run(["flwr", "run", "."])
+                subprocess.run(["flwr", "run", "./"])
             
                 print(f"Finished {nb_clients} clients, {alpha_partition} alpha_partition, {momentum_threshold} momentum_threshold")
 

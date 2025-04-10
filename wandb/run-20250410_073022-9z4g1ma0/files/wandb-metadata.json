@@ -1,0 +1,46 @@
+{
+  "os": "Windows-10-10.0.26100-SP0",
+  "python": "CPython 3.11.9",
+  "startedAt": "2025-04-10T05:30:22.863081Z",
+  "args": [
+    "--app",
+    ".",
+    "--num-supernodes",
+    "10"
+  ],
+  "program": "-m __main__",
+  "git": {
+    "remote": "git@github.com:marty12342000/fl-thesis-skovde.git",
+    "commit": "3521e121d0e34ed03907655e62bb6cddfe1c1268"
+  },
+  "email": "martin.lallemand@gmail.com",
+  "root": "C:\\Users\\marti\\Desktop\\thesis_flower_env\\fl-thesis-skovde",
+  "host": "MSI",
+  "executable": "C:\\Users\\marti\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+  "cpu_count": 14,
+  "cpu_count_logical": 20,
+  "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "486526676992",
+      "used": "403853312000"
+    }
+  },
+  "memory": {
+    "total": "16867201024"
+  },
+  "cpu": {
+    "count": 14,
+    "countLogical": 20
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 3050 Laptop GPU",
+      "memoryTotal": "4294967296",
+      "cudaCores": 2048,
+      "architecture": "Ampere"
+    }
+  ],
+  "cudaVersion": "11.6"
+}

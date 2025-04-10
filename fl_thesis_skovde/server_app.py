@@ -64,7 +64,7 @@ def server_fn(context: Context):
     parameters = ndarrays_to_parameters(ndarrays)
 
     # Load global test data
-    testset = load_dataset("zalando-datasets/fashion_mnist")["test"]
+    testset = load_dataset("uoft-cs/cifar10")["test"]
     testloader = DataLoader(testset.with_transform(get_transforms()), batch_size=32)
 
 

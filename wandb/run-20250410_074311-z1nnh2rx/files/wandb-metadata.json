@@ -1,7 +1,7 @@
 {
   "os": "Windows-10-10.0.26100-SP0",
   "python": "CPython 3.11.9",
-  "startedAt": "2025-04-09T19:49:42.063117Z",
+  "startedAt": "2025-04-10T05:43:11.612443Z",
   "args": [
     "--app",
     ".",
@@ -11,7 +11,7 @@
   "program": "-m __main__",
   "git": {
     "remote": "git@github.com:marty12342000/fl-thesis-skovde.git",
-    "commit": "d3db678852fc481339d5150ac5d8d12cfe71ed64"
+    "commit": "3521e121d0e34ed03907655e62bb6cddfe1c1268"
   },
   "email": "martin.lallemand@gmail.com",
   "root": "C:\\Users\\marti\\Desktop\\thesis_flower_env\\fl-thesis-skovde",
@@ -24,7 +24,7 @@
   "disk": {
     "/": {
       "total": "486526676992",
-      "used": "404170403840"
+      "used": "403914592256"
     }
   },
   "memory": {
