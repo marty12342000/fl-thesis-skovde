@@ -46,8 +46,6 @@ def on_fit_config_fn(server_round: int) -> Metrics:
     """Adjust learning rate based on current round."""
 
     lr = 0.01
-    if server_round > 2 :
-        lr = 0.005
 
     return {"lr": lr}
 
@@ -58,6 +56,8 @@ def server_fn(context: Context):
 
     gamma = context.run_config["gamma"]
     momentum_threshold = context.run_config["momentum_threshold"]
+    alpha_partition = context.run_config["alpha_partition"]
+
 
     # Initialize model parameters
     ndarrays = get_weights(Net()) # Net() is the model define in task.py 
@@ -72,6 +72,7 @@ def server_fn(context: Context):
     strategy = EarlyStoppingAMBS(
         gamma=gamma,
         momentum_threshold=momentum_threshold,
+        alpha_partition=alpha_partition,
         fraction_fit=fraction_fit,
         fraction_evaluate=1.0,
         min_available_clients=2,

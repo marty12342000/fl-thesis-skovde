@@ -20,16 +20,15 @@ serverapp = "fl_thesis_skovde.server_app:app"
 clientapp = "fl_thesis_skovde.client_app:app"
 
 [tool.flwr.app.config]
-num-server-rounds = 5
+num-server-rounds = 100
 fraction-fit = 0.5
-local-epochs = 1
+local-epochs = 5
 momentum_threshold = 0.0001
 gamma = 0.9
-alpha_partition = 0.1
-num-supernodes = 10
+alpha_partition = 100
 
 [tool.flwr.federations.local-simulation.options]
-num-supernodes = 10
+num-supernodes = 50
 
 [tool.hatch.build.targets.wheel]
 packages = [ ".",]

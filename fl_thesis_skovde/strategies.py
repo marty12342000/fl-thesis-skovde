@@ -4,6 +4,7 @@ import wandb
 from datetime import datetime
 from logging import INFO, WARNING
 from typing import Callable, Optional, Union, Dict, Tuple, List
+import toml
 
 from flwr.common import (
     EvaluateIns, # Ajout de EvaluateIns pour la complétude
@@ -41,17 +42,31 @@ class EarlyStoppingAMBS(FedAvg):
         *,          
         gamma: float = 0.5,
         momentum_threshold: float = 0.001,
+        alpha_partition: float = 0.1,
         **kwargs
     ):
         super().__init__(**kwargs) # Passe les arguments pertinents à FedAvg
 
-        name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        wandb.init(project="fl-thesis-skovde", name=f"custom-strategy-{name}")
+
+        file_path = "./pyproject.toml"
+        with open(file_path, "r") as f:
+            data = toml.load(f)
+
+        options = data["tool"]["flwr"]["federations"]["local-simulation"]["options"]
+        nb_clients = options["num-supernodes"] 
+
+        with open(file_path, "w") as f:
+            toml.dump(data, f)
+
+        name = datetime.now().strftime("%m-%d")
+        wandb.init(project="fl-thesis-skovde", name=f"{name}-clients:{nb_clients}-alpha:{alpha_partition}-gamma:{gamma}")
 
 
 
         self.gamma = gamma
         self.momentum_threshold = momentum_threshold
+
+        self.alpha_partition = alpha_partition
 
 
         self._stop_requested = False
@@ -94,11 +109,11 @@ class EarlyStoppingAMBS(FedAvg):
 
         momentum = self.gamma * self._previous_momentum + (1 - self.gamma) * delta_loss
 
-        if server_round == 0:
-            pass
-        else:
-            if momentum < self.momentum_threshold:
-                self._stop_requested = True
+        #if server_round == 0:
+        #    pass
+        #else:
+        #    if momentum < self.momentum_threshold:
+        #        self._stop_requested = True
 
 
         self._previous_momentum = momentum
