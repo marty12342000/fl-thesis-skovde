@@ -10,9 +10,9 @@ fds = None
 word2idx = {}
 
 # === Model ===
-class SentimentLSTM(nn.Module):
+class Net(nn.Module):
     def __init__(self, vocab_size, embed_dim=100, hidden_dim=128, num_layers=1):
-        super(SentimentLSTM, self).__init__()
+        super(Net, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
         self.lstm = nn.LSTM(embed_dim, hidden_dim, num_layers, batch_first=True)
         self.fc = nn.Linear(hidden_dim, 3)  # 3 sentiment classes: pos/neg/neutral
@@ -39,7 +39,7 @@ def collate_fn(batch):
     return padded_inputs, labels
 
 # === Data Loader ===
-def load_sentiment140(partition_id: int, num_partitions: int, alpha_partition: float):
+def load_data(partition_id: int, num_partitions: int, alpha_partition: float):
     global fds, word2idx
 
     # Initialize dataset and partitioner once
