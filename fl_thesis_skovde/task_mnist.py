@@ -9,6 +9,7 @@ from flwr_datasets.partitioner import DirichletPartitioner
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, Normalize, ToTensor
 
+which_dataset = "mnist"
 
 
 class Net(nn.Module):

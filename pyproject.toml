@@ -7,7 +7,7 @@ name = "fl-thesis-skovde"
 version = "1.0.0"
 description = ""
 license = "Apache-2.0"
-dependencies = [ "flwr[simulation]>=1.17.0", "flwr-datasets[vision]>=0.5.0", "torch==2.5.1", "torchvision==0.20.1", "wandb",]
+dependencies = [ "flwr[simulation]>=1.17.0", "flwr-datasets[vision]>=0.5.0", "torch==2.5.1", "torchvision==0.20.1", "wandb", "torchtext", "nltk",]
 
 [tool.flwr.app]
 publisher = "Martin"
@@ -23,12 +23,11 @@ clientapp = "fl_thesis_skovde.client_app:app"
 num-server-rounds = 100
 fraction-fit = 0.5
 local-epochs = 5
-momentum_threshold = 0.0001
-gamma = 0.9
 alpha_partition = 100
+gamma = 0.9
 
 [tool.flwr.federations.local-simulation.options]
-num-supernodes = 50
+num-supernodes = 10
 
 [tool.hatch.build.targets.wheel]
 packages = [ ".",]

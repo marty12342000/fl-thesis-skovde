@@ -10,8 +10,10 @@ from fl_thesis_skovde.task import Net, get_weights, set_weights, test
 from datasets import load_dataset
 from fl_thesis_skovde.strategies import EarlyStoppingAMBS
 from torch.utils.data import DataLoader
-from fl_thesis_skovde.task import get_transforms
+from fl_thesis_skovde.task import get_transforms, which_dataset
 import json
+from .torchdatasetwrapper import TorchDatasetWrapper
+
 
 
 def get_evaluate_fn(testloader, device):
@@ -54,24 +56,35 @@ def server_fn(context: Context):
     num_rounds = context.run_config["num-server-rounds"]
     fraction_fit = context.run_config["fraction-fit"]
 
-    gamma = context.run_config["gamma"]
-    momentum_threshold = context.run_config["momentum_threshold"]
     alpha_partition = context.run_config["alpha_partition"]
 
 
     # Initialize model parameters
     ndarrays = get_weights(Net()) # Net() is the model define in task.py 
     parameters = ndarrays_to_parameters(ndarrays)
+    testset = None
+    if which_dataset == "cifar10":
+        testset = load_dataset("uoft-cs/cifar10")["test"]
+        testset = testset.with_transform(get_transforms())
 
-    # Load global test data
-    testset = load_dataset("uoft-cs/cifar10")["test"]
-    testloader = DataLoader(testset.with_transform(get_transforms()), batch_size=32)
+    elif which_dataset == "sentiment":
+        trainset = load_dataset("mteb/tweet_sentiment_extraction")["train"]
+        testset = load_dataset("mteb/tweet_sentiment_extraction")["test"]
+        transform_fn = get_transforms(trainset)
+        testset = TorchDatasetWrapper(testset, transform_fn)
+
+
+    elif which_dataset == "mnist":
+        testset = load_dataset("ylecun/mnist")["test"]
+        testset = testset.with_transform(get_transforms())
+
+    
+    testloader = DataLoader(testset, batch_size=32)
 
 
     # Define strategy
     strategy = EarlyStoppingAMBS(
-        gamma=gamma,
-        momentum_threshold=momentum_threshold,
+        dataset=which_dataset,
         alpha_partition=alpha_partition,
         fraction_fit=fraction_fit,
         fraction_evaluate=1.0,
@@ -79,7 +92,7 @@ def server_fn(context: Context):
         initial_parameters=parameters,
         evaluate_metrics_aggregation_fn=weighted_average,
         on_fit_config_fn=on_fit_config_fn,
-        evaluate_fn=get_evaluate_fn(testloader, device="cpu"),
+        evaluate_fn=get_evaluate_fn(testloader, device="cpu")
     )
     config = ServerConfig(num_rounds=num_rounds)
 

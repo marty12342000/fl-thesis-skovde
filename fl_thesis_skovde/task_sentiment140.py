@@ -3,81 +3,99 @@ from flwr_datasets.partitioner import DirichletPartitioner
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from collections import Counter, OrderedDict
+from .torchdatasetwrapper import TorchDatasetWrapper
+from collections import Counter
+import re
+import numpy as np
+from collections import OrderedDict
+import nltk
+from nltk.corpus import stopwords
 
-# === Global variables ===
+# Download stopwords
+nltk.download("stopwords", quiet=True)
+stop_words = set(stopwords.words("english"))
+
+# Globals
 fds = None
 word2idx = {}
+which_dataset = "sentiment"
 
-# === Model ===
+# Model
 class Net(nn.Module):
-    def __init__(self, vocab_size, embed_dim=100, hidden_dim=128, num_layers=1):
+    def __init__(self, vocab_size=20000, embed_dim=100, hidden_dim=128, num_classes=3):
         super(Net, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embed_dim)
-        self.lstm = nn.LSTM(embed_dim, hidden_dim, num_layers, batch_first=True)
-        self.fc = nn.Linear(hidden_dim, 3)  # 3 sentiment classes: pos/neg/neutral
+        self.lstm = nn.LSTM(embed_dim, hidden_dim, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, num_classes)
 
     def forward(self, x):
-        embedded = self.embedding(x)
-        _, (hidden, _) = self.lstm(embedded)
+        _, (hidden, _) = self.lstm(self.embedding(x))
         return self.fc(hidden[-1])
 
-# === Vocabulary Builder ===
-def build_vocab(dataset, min_freq=5):
-    counter = Counter()
-    for row in dataset["train"]:
-        counter.update(row["x"].split())
-    vocab = [word for word, freq in counter.items() if freq >= min_freq]
-    vocab = ["<pad>", "<unk>"] + vocab
-    return {word: idx for idx, word in enumerate(vocab)}
+# Padding
+def padding_(sentences, seq_len):
+    features = np.zeros((len(sentences), seq_len), dtype=int)
+    for ii, review in enumerate(sentences):
+        if len(review) != 0:
+            features[ii, -len(review):] = np.array(review)[:seq_len]
+    return features
 
-# === Collate Function ===
-def collate_fn(batch):
-    inputs = [item["text"] for item in batch]
-    labels = torch.tensor([item["sentiment"] for item in batch], dtype=torch.long)
-    padded_inputs = nn.utils.rnn.pad_sequence(inputs, batch_first=True)
-    return padded_inputs, labels
+# Tokenization + Vocabulary
+def get_transforms(train_data, seq_len=50, vocab_size=20000):
+    global word2idx
 
-# === Data Loader ===
+    def clean_and_tokenize(text):
+        if isinstance(text, list):
+            text = " ".join(text)
+        text = text.lower()
+        text = re.sub(r"[^a-z\s]", "", text)
+        tokens = text.split()
+        tokens = [t for t in tokens if t not in stop_words]
+        return tokens
+
+    if not word2idx:
+        counter = Counter()
+        for example in train_data:
+            text = example["text"]
+            counter.update(clean_and_tokenize(text))
+        most_common = counter.most_common(vocab_size - 2)
+        word2idx = {"<PAD>": 0, "<UNK>": 1}
+        word2idx.update({word: idx + 2 for idx, (word, _) in enumerate(most_common)})
+
+    def tokenize(example):
+        tokens = clean_and_tokenize(example["text"])
+        token_ids = [word2idx.get(token, word2idx["<UNK>"]) for token in tokens]
+        padded = padding_([token_ids], seq_len)[0]
+        return torch.tensor(padded, dtype=torch.long), torch.tensor(example["label"], dtype=torch.long)
+
+    return tokenize
+
+
+# Load Data
 def load_data(partition_id: int, num_partitions: int, alpha_partition: float):
     global fds, word2idx
 
-    # Initialize dataset and partitioner once
     if fds is None:
         partitioner = DirichletPartitioner(
-            num_partitions=num_partitions, partition_by="sentiment", alpha=alpha_partition, seed=42
+            num_partitions=num_partitions, partition_by="label", alpha=alpha_partition, seed=42
         )
         fds = FederatedDataset(
-            dataset="sentiment140",  # from Hugging Face
-            partitioners={"train": partitioner},
+            dataset="mteb/tweet_sentiment_extraction",
+            partitioners={"train": partitioner}
         )
 
-        # Build vocabulary only once
-        raw_partition = fds.load_partition(0)
-        raw_data = raw_partition.load_raw()["train"]
-        word2idx = build_vocab(raw_data)
-
-    # Load partition for this client
     partition = fds.load_partition(partition_id)
+    partition_train_test = partition.train_test_split(test_size=0.2, seed=42)
 
-    # Tokenize each batch
-    def tokenize(batch):
-        inputs, labels = [], []
-        for text, label in zip(batch["x"], batch["y"]):
-            tokens = [word2idx.get(word, word2idx["<unk>"]) for word in text.split()]
-            inputs.append(torch.tensor(tokens, dtype=torch.long))
-            labels.append(torch.tensor(label, dtype=torch.long))
-        return {"text": inputs, "sentiment": labels}
+    transform_fn = get_transforms(partition_train_test["train"])
+    train_dataset = TorchDatasetWrapper(partition_train_test["train"], transform_fn)
+    test_dataset = TorchDatasetWrapper(partition_train_test["test"], transform_fn)
 
-    # Apply tokenization
-    transformed = partition.with_transform(tokenize)
-
-    # Create DataLoaders
-    trainloader = DataLoader(transformed["train"], batch_size=32, shuffle=True, collate_fn=collate_fn)
-    testloader = DataLoader(transformed["test"], batch_size=32, collate_fn=collate_fn)
+    trainloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    testloader = DataLoader(test_dataset, batch_size=32)
     return trainloader, testloader
 
-# === Training ===
+# Train
 def train(net, trainloader, epochs, lr, device):
     net.to(device)
     criterion = nn.CrossEntropyLoss()
@@ -93,24 +111,27 @@ def train(net, trainloader, epochs, lr, device):
             optimizer.step()
     return loss.item()
 
-# === Testing ===
+# Test
 def test(net, testloader, device):
     net.to(device)
     net.eval()
     total_loss, correct = 0.0, 0
     criterion = nn.CrossEntropyLoss()
+    total_samples = 0
     with torch.no_grad():
         for inputs, labels in testloader:
             inputs, labels = inputs.to(device), labels.to(device)
             outputs = net(inputs)
             total_loss += criterion(outputs, labels).item()
             correct += (outputs.argmax(dim=1) == labels).sum().item()
-    accuracy = correct / len(testloader.dataset)
+            total_samples += labels.size(0)
+    accuracy = correct / total_samples if total_samples > 0 else 0.0
     return total_loss / len(testloader), accuracy
 
-# === Federated Weights ===
+
 def get_weights(net):
     return [val.cpu().numpy() for _, val in net.state_dict().items()]
+
 
 def set_weights(net, parameters):
     params_dict = zip(net.state_dict().keys(), parameters)
